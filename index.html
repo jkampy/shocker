@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shocker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: arena scoreboard, punchy but tidy; it's for friends, not a corporation
+   IDEA: the big hanging scoreboard over a hardwood floor
+   PICTURE: the standings board itself, lit numbers on a dark board, sitting on a maple court band
+   COLOUR and TYPE: maple #d9a066 floor, scoreboard ink #15171c, ball orange #f26b1d accent; Oswald numbers, Barlow text
+   LAYOUT: modest title, standings board first, rosters expand inline, commissioner tools below */
+:root{color-scheme:light dark;
+--bg:light-dark(#f6efe4,#121317);--ink:light-dark(#1a1b20,#f1ece4);--mute:light-dark(#5e5a52,#a9a49b);
+--floor:light-dark(#d9a066,#6b4a2c);--floor2:light-dark(#c98f55,#5c3f25);
+--board:#15171c;--board2:#1f2229;--lit:#ffd36a;--orange:#f26b1d;--line:light-dark(#e3d8c7,#2a2c33);--card:light-dark(#fffaf2,#1a1c21)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Barlow,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1100px;margin:0 auto}
+header.band{background:repeating-linear-gradient(90deg,var(--floor) 0 46px,var(--floor2) 46px 48px);padding-bottom:clamp(116px,12vw,140px);position:relative}
+header.band::after{content:"";position:absolute;left:50%;bottom:-1px;width:min(520px,80vw);height:60px;transform:translateX(-50%);border:3px solid rgba(255,255,255,.55);border-bottom:0;border-radius:260px 260px 0 0}
+h1{font:700 clamp(32px,6vw,52px)/1.05 Oswald,sans-serif;margin:0;color:#1a1208;text-wrap:balance}
+.sub{margin:6px 0 0;color:#3a2a17;font-weight:600}
+:root[data-theme=dark] h1,:root[data-theme=dark] .sub{color:#fff3e2}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) h1,:root:not([data-theme=light]) .sub{color:#fff3e2}}
+main.band{padding-top:0}
+.board{background:var(--board);color:#e9e6df;border-radius:14px;margin-top:-84px;position:relative;box-shadow:0 18px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
+.board-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #2c2f37}
+.board-top h2{font:500 22px/1.1 Oswald,sans-serif;margin:0;color:var(--lit);letter-spacing:.02em}
+.note{font-size:13px;color:#a7a39b}
+.search{flex:1 1 220px;max-width:320px}
+input,button{font:inherit;font-size:16px}
+input[type=search],input[type=text],input[type=number]{width:100%;min-height:44px;padding:8px 12px;border-radius:8px;border:1px solid #3a3d46;background:var(--board2);color:#f1ece4}
+input:focus-visible,button:focus-visible,.row:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.row{display:grid;grid-template-columns:44px minmax(0,1fr) 64px 52px 52px 64px 56px 24px;align-items:center;gap:6px;padding:10px 18px;border-bottom:1px solid #262930;cursor:pointer;width:100%;background:none;border-left:0;border-right:0;border-top:0;color:inherit;text-align:left;min-height:56px}
+.row:hover{background:#1c1f25}
+.head{cursor:default;min-height:0;font-size:13px;color:#a7a39b;padding-block:8px}.head:hover{background:none}
+.rk{font:700 22px Oswald,sans-serif;color:#8d8a84}
+.r1 .rk{color:var(--lit)}
+.nm{font-weight:700;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.num{font:500 24px Oswald,sans-serif;text-align:right;color:var(--lit);font-variant-numeric:tabular-nums;white-space:nowrap}
+.num.l{color:#e9e6df}.num.sm{font-size:18px;color:#c9c5bd}
+.head .num{font:600 13px Barlow,sans-serif;color:#a7a39b}
+.chev{color:#8d8a84;transition:transform .2s}
+.row[aria-expanded=true] .chev{transform:rotate(90deg)}
+.bar{grid-column:2/-1;height:5px;border-radius:3px;background:#2a2d34;overflow:hidden;margin-top:-2px}
+.bar i{display:block;height:100%;background:var(--orange)}
+.roster{background:var(--card);color:var(--ink);padding:14px 18px 18px;border-bottom:1px solid #262930}
+.roster table{width:100%;border-collapse:collapse}
+.roster th{font-size:13px;color:var(--mute);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.roster td{padding:8px;border-bottom:1px solid var(--line)}
+.roster .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.roster th.n{text-align:right}
+.roster tr.hit td{background:color-mix(in srgb,var(--orange) 18%,transparent)}
+.roster input{background:var(--bg);color:var(--ink);border-color:var(--line);min-height:40px}
+.roster input[type=number]{width:72px;text-align:right}
+.tot td{font-weight:700;border-bottom:0}
+.hist table{width:100%;border-collapse:collapse;margin-top:6px}.hist th,.hist td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}.hist th{font-size:13px;color:var(--mute);font-weight:600}.hist .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.hist details{border-top:1px solid var(--line);padding:6px 0}.hist summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:10px;font-weight:700}.hist summary b{font:500 20px Oswald,sans-serif;color:var(--orange)}
+.empty{padding:24px 18px;color:#a7a39b}
+.tools{margin-top:28px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.tools h3{font:500 20px Oswald,sans-serif;margin:0 0 6px}
+.tools p{margin:0 0 12px;color:var(--mute);max-width:68ch}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btn{min-height:44px;padding:8px 16px;border-radius:999px;border:2px solid var(--ink);background:none;color:var(--ink);font-weight:700;cursor:pointer}
+.btn.go{background:var(--orange);border-color:var(--orange);color:#1a1208}
+.msg{min-height:1.5em;margin-top:10px;font-weight:600}
+.edit-only{display:none}body.editing .edit-only{display:block}
+footer{font-size:13px;color:var(--mute);text-align:center;padding:24px 16px 40px}
+@media(max-width:600px){.row{grid-template-columns:30px minmax(0,1fr) 50px 40px 40px 18px;padding-inline:12px}.row .gb,.row .pc{display:none}.hist td.pc,.hist th.pc{display:none}.num{font-size:20px}.nm{font-size:16px}.roster{padding-inline:12px}.roster .gp{display:none}}
+@media(prefers-reduced-motion:reduce){.chev{transition:none}}
+</style>
+</head>
+<body>
+<header class="band"><div class="wrap">
+<h1 id="title">Shocker</h1>
+<p class="sub" id="sub">11 managers · 12 college teams each · most points (wins + bonus) takes it</p>
+</div></header>
+
+<main class="band"><div class="wrap">
+<section class="board" aria-labelledby="st">
+<div class="board-top">
+<div><h2 id="st">Standings</h2><div class="note" id="updated"></div></div>
+<div class="search"><label class="note" for="q">Find a team</label><input id="q" type="search" placeholder="e.g. Duke" autocomplete="off"></div>
+</div>
+<div class="row head" aria-hidden="true"><span>#</span><span>Manager</span><span class="num">Pts</span><span class="num">W</span><span class="num">L</span><span class="num pc">Pct</span><span class="num gb">Back</span><span></span></div>
+<div id="rows"></div>
+</section>
+<p class="note" id="samplenote" style="color:var(--mute);margin-top:10px"></p>
+
+<section class="tools hist" aria-labelledby="ht">
+<h3 id="ht">Past seasons</h3>
+<p>Final standings from the league spreadsheet. Points are wins plus bonus.</p>
+<div id="history"></div>
+</section>
+
+
+</div></main>
+<footer>Points = wins + bonus. Fewer losses breaks a tie. “Back” is points behind first place.</footer>
+
+<script id="league-data" type="application/json">{
+ "league": "Shocker",
+ "season": "2026–27",
+ "updated": "2026-11-25T22:50:00Z",
+ "source": "ESPN standings, cross-checked with Sports Reference",
+ "sample": false,
+ "managers": [
+  {
+   "name": "Wes",
+   "teams": [
+    {
+     "name": "Duke",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "DUKE"
+    },
+    {
+     "name": "Ohio State",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "OSU"
+    },
+    {
+     "name": "Grand Canyon",
+     "w": 5,
+     "l": 0,
+     "b": 0,
+     "espn": "GCU"
+    },
+    {
+     "name": "Marquette",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "MARQ"
+    },
+    {
+     "name": "West Virginia",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "WVU"
+    },
+    {
+     "name": "Auburn",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "AUB"
+    },
+    {
+     "name": "Baylor",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "BAY"
+    },
+    {
+     "name": "Troy",
+     "w": 3,
+     "l": 4,
+     "b": 0,
+     "espn": "TROY"
+    },
+    {
+     "name": "LSU",
+     "w": 7,
+     "l": 0,
+     "b": 0,
+     "espn": "LSU"
+    },
+    {
+     "name": "Central Arkansas",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "CARK"
+    },
+    {
+     "name": "Xavier",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "XAV"
+    },
+    {
+     "name": "George Mason",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "GMU"
+    }
+   ]
+  },
+  {
+   "name": "Steve Smith",
+   "teams": [
+    {
+     "name": "Florida",
+     "w": 7,
+     "l": 1,
+     "b": 0,
+     "espn": "FLA"
+    },
+    {
+     "name": "Tennessee",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "TENN"
+    },
+    {
+     "name": "Miami",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "MIA"
+    },
+    {
+     "name": "Wisconsin",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "WIS"
+    },
+    {
+     "name": "Murray State",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "MUR"
+    },
+    {
+     "name": "Cincinnati",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "CIN"
+    },
+    {
+     "name": "Santa Clara",
+     "w": 6,
+     "l": 2,
+     "b": 0,
+     "espn": "SCU"
+    },
+    {
+     "name": "Minnesota",
+     "w": 7,
+     "l": 0,
+     "b": 0,
+     "espn": "MINN"
+    },
+    {
+     "name": "UC San Diego",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "UCSD"
+    },
+    {
+     "name": "South Florida",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "USF"
+    },
+    {
+     "name": "Kent State",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "KENT"
+    },
+    {
+     "name": "SMU",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "SMU"
+    }
+   ]
+  },
+  {
+   "name": "Mahat",
+   "teams": [
+    {
+     "name": "Illinois",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "ILL"
+    },
+    {
+     "name": "Virginia",
+     "w": 8,
+     "l": 0,
+     "b": 0,
+     "espn": "UVA"
+    },
+    {
+     "name": "UCLA",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "UCLA"
+    },
+    {
+     "name": "New Mexico",
+     "w": 3,
+     "l": 2,
+     "b": 0,
+     "espn": "UNM"
+    },
+    {
+     "name": "UC Santa Barbara",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "UCSB"
+    },
+    {
+     "name": "Akron",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "AKR"
+    },
+    {
+     "name": "Furman",
+     "w": 7,
+     "l": 1,
+     "b": 0,
+     "espn": "FUR"
+    },
+    {
+     "name": "UIC",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "UIC"
+    },
+    {
+     "name": "Western Kentucky",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "WKU"
+    },
+    {
+     "name": "Stephen F. Austin",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "SFA"
+    },
+    {
+     "name": "St. Thomas",
+     "w": 5,
+     "l": 3,
+     "b": 0,
+     "espn": "STMN"
+    },
+    {
+     "name": "Tarleton State",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "TAR"
+    }
+   ]
+  },
+  {
+   "name": "Mattea",
+   "teams": [
+    {
+     "name": "Gonzaga",
+     "w": 4,
+     "l": 1,
+     "b": 0,
+     "espn": "GONZ"
+    },
+    {
+     "name": "Saint Louis",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "SLU"
+    },
+    {
+     "name": "Saint Mary's",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "SMC"
+    },
+    {
+     "name": "Wichita State",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "WICH"
+    },
+    {
+     "name": "Liberty",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "LIB"
+    },
+    {
+     "name": "Harvard",
+     "w": 3,
+     "l": 5,
+     "b": 0,
+     "espn": "HARV"
+    },
+    {
+     "name": "Iowa",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "IOWA"
+    },
+    {
+     "name": "Vermont",
+     "w": 3,
+     "l": 4,
+     "b": 0,
+     "espn": "UVM"
+    },
+    {
+     "name": "Virginia Tech",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "VT"
+    },
+    {
+     "name": "East Tennessee State",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "ETSU"
+    },
+    {
+     "name": "Charleston",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "COFC"
+    },
+    {
+     "name": "Bethune-Cookman",
+     "w": 1,
+     "l": 5,
+     "b": 0,
+     "espn": "BCU"
+    }
+   ]
+  },
+  {
+   "name": "Mac",
+   "teams": [
+    {
+     "name": "Arizona",
+     "w": 7,
+     "l": 1,
+     "b": 0,
+     "espn": "ARIZ"
+    },
+    {
+     "name": "St. John's",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "SJU"
+    },
+    {
+     "name": "Michigan",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "MICH"
+    },
+    {
+     "name": "North Carolina",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "UNC"
+    },
+    {
+     "name": "Missouri",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "MIZ"
+    },
+    {
+     "name": "TCU",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "TCU"
+    },
+    {
+     "name": "Georgia",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "UGA"
+    },
+    {
+     "name": "NC State",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "NCSU"
+    },
+    {
+     "name": "Arizona State",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "ASU"
+    },
+    {
+     "name": "Queens",
+     "w": 3,
+     "l": 4,
+     "b": 0,
+     "espn": "QUC"
+    },
+    {
+     "name": "Binghamton",
+     "w": 5,
+     "l": 3,
+     "b": 0,
+     "espn": "BING"
+    },
+    {
+     "name": "Fairfield",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "FAIR"
+    }
+   ]
+  },
+  {
+   "name": "Holzum",
+   "teams": [
+    {
+     "name": "UConn",
+     "w": 4,
+     "l": 1,
+     "b": 0,
+     "espn": "CONN"
+    },
+    {
+     "name": "Louisville",
+     "w": 4,
+     "l": 1,
+     "b": 0,
+     "espn": "LOU"
+    },
+    {
+     "name": "Vanderbilt",
+     "w": 7,
+     "l": 0,
+     "b": 0,
+     "espn": "VAN"
+    },
+    {
+     "name": "VCU",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "VCU"
+    },
+    {
+     "name": "Villanova",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "VILL"
+    },
+    {
+     "name": "UC Irvine",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "UCI"
+    },
+    {
+     "name": "Miami (OH)",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "M-OH"
+    },
+    {
+     "name": "James Madison",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "JMU"
+    },
+    {
+     "name": "Pennsylvania",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "PENN"
+    },
+    {
+     "name": "North Dakota State",
+     "w": 3,
+     "l": 5,
+     "b": 0,
+     "espn": "NDSU"
+    },
+    {
+     "name": "Arkansas State",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "ARST"
+    },
+    {
+     "name": "Oregon State",
+     "w": 8,
+     "l": 0,
+     "b": 0,
+     "espn": "ORST"
+    }
+   ]
+  },
+  {
+   "name": "Rob",
+   "teams": [
+    {
+     "name": "Arkansas",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "ARK"
+    },
+    {
+     "name": "Texas Tech",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "TTU"
+    },
+    {
+     "name": "Indiana",
+     "w": 7,
+     "l": 0,
+     "b": 0,
+     "espn": "IU"
+    },
+    {
+     "name": "USC",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "USC"
+    },
+    {
+     "name": "Maryland",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "MD"
+    },
+    {
+     "name": "Florida State",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "FSU"
+    },
+    {
+     "name": "Colorado State",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "CSU"
+    },
+    {
+     "name": "Nevada",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "NEV"
+    },
+    {
+     "name": "Tulsa",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "TLSA"
+    },
+    {
+     "name": "UNLV",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "UNLV"
+    },
+    {
+     "name": "Belmont",
+     "w": 5,
+     "l": 3,
+     "b": 0,
+     "espn": "BEL"
+    },
+    {
+     "name": "Ohio",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "OHIO"
+    }
+   ]
+  },
+  {
+   "name": "Jeremy",
+   "teams": [
+    {
+     "name": "Michigan State",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "MSU"
+    },
+    {
+     "name": "Texas",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "TEX"
+    },
+    {
+     "name": "Kentucky",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "UK"
+    },
+    {
+     "name": "BYU",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "BYU"
+    },
+    {
+     "name": "Utah State",
+     "w": 5,
+     "l": 0,
+     "b": 0,
+     "espn": "USU"
+    },
+    {
+     "name": "Illinois State",
+     "w": 4,
+     "l": 4,
+     "b": 0,
+     "espn": "ILST"
+    },
+    {
+     "name": "Clemson",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "CLEM"
+    },
+    {
+     "name": "Wright State",
+     "w": 6,
+     "l": 2,
+     "b": 0,
+     "espn": "WRST"
+    },
+    {
+     "name": "Ole Miss",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "MISS"
+    },
+    {
+     "name": "Oregon",
+     "w": 3,
+     "l": 2,
+     "b": 0,
+     "espn": "ORE"
+    },
+    {
+     "name": "Robert Morris",
+     "w": 2,
+     "l": 5,
+     "b": 0,
+     "espn": "RMU"
+    },
+    {
+     "name": "Providence",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "PROV"
+    }
+   ]
+  },
+  {
+   "name": "Artime",
+   "teams": [
+    {
+     "name": "High Point",
+     "w": 7,
+     "l": 0,
+     "b": 0,
+     "espn": "HPU"
+    },
+    {
+     "name": "McNeese",
+     "w": 2,
+     "l": 2,
+     "b": 0,
+     "espn": "MCN"
+    },
+    {
+     "name": "Howard",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "HOW"
+    },
+    {
+     "name": "UNC Wilmington",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "UNCW"
+    },
+    {
+     "name": "Long Island University",
+     "w": 1,
+     "l": 7,
+     "b": 0,
+     "espn": "LIU"
+    },
+    {
+     "name": "Lipscomb",
+     "w": 4,
+     "l": 5,
+     "b": 0,
+     "espn": "LIP"
+    },
+    {
+     "name": "Montana State",
+     "w": 2,
+     "l": 4,
+     "b": 0,
+     "espn": "MTST"
+    },
+    {
+     "name": "Tennessee State",
+     "w": 2,
+     "l": 3,
+     "b": 0,
+     "espn": "TNST"
+    },
+    {
+     "name": "Austin Peay",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "APSU"
+    },
+    {
+     "name": "Colgate",
+     "w": 2,
+     "l": 4,
+     "b": 0,
+     "espn": "COLG"
+    },
+    {
+     "name": "Iona",
+     "w": 3,
+     "l": 5,
+     "b": 0,
+     "espn": "IONA"
+    },
+    {
+     "name": "Merrimack",
+     "w": 1,
+     "l": 4,
+     "b": 0,
+     "espn": "MRMK"
+    }
+   ]
+  },
+  {
+   "name": "Erik",
+   "teams": [
+    {
+     "name": "Houston",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "HOU"
+    },
+    {
+     "name": "Kansas",
+     "w": 6,
+     "l": 1,
+     "b": 0,
+     "espn": "KU"
+    },
+    {
+     "name": "Purdue",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "PUR"
+    },
+    {
+     "name": "Texas A&M",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "TA&M"
+    },
+    {
+     "name": "Creighton",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "CREI"
+    },
+    {
+     "name": "Oklahoma",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "OU"
+    },
+    {
+     "name": "Memphis",
+     "w": 4,
+     "l": 1,
+     "b": 0,
+     "espn": "MEM"
+    },
+    {
+     "name": "Dayton",
+     "w": 3,
+     "l": 4,
+     "b": 0,
+     "espn": "DAY"
+    },
+    {
+     "name": "Wake Forest",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "WAKE"
+    },
+    {
+     "name": "San Francisco",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "SF"
+    },
+    {
+     "name": "UAB",
+     "w": 4,
+     "l": 3,
+     "b": 0,
+     "espn": "UAB"
+    },
+    {
+     "name": "Samford",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "SAM"
+    }
+   ]
+  },
+  {
+   "name": "Steve Wehrell",
+   "teams": [
+    {
+     "name": "Iowa State",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "ISU"
+    },
+    {
+     "name": "Alabama",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "ALA"
+    },
+    {
+     "name": "Nebraska",
+     "w": 6,
+     "l": 0,
+     "b": 0,
+     "espn": "NEB"
+    },
+    {
+     "name": "San Diego State",
+     "w": 5,
+     "l": 1,
+     "b": 0,
+     "espn": "SDSU"
+    },
+    {
+     "name": "Boise State",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "BOIS"
+    },
+    {
+     "name": "Princeton",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "PRIN"
+    },
+    {
+     "name": "Drake",
+     "w": 4,
+     "l": 2,
+     "b": 0,
+     "espn": "DRKE"
+    },
+    {
+     "name": "Louisiana Tech",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "LT"
+    },
+    {
+     "name": "Bradley",
+     "w": 3,
+     "l": 4,
+     "b": 0,
+     "espn": "BRAD"
+    },
+    {
+     "name": "Toledo",
+     "w": 3,
+     "l": 3,
+     "b": 0,
+     "espn": "TOL"
+    },
+    {
+     "name": "Quinnipiac",
+     "w": 3,
+     "l": 4,
+     "b": 0,
+     "espn": "QUIN"
+    },
+    {
+     "name": "South Dakota State",
+     "w": 5,
+     "l": 2,
+     "b": 0,
+     "espn": "SDST"
+    }
+   ]
+  }
+ ],
+ "history": [
+  {
+   "season": "2025-26",
+   "rows": [
+    {
+     "name": "Steve Smith",
+     "pts": 299,
+     "pct": 67.8,
+     "pay": 250
+    },
+    {
+     "name": "Steve Wehrell",
+     "pts": 288,
+     "pct": 66.3,
+     "pay": 150
+    },
+    {
+     "name": "Holzum",
+     "pts": 280,
+     "pct": 66,
+     "pay": 100
+    },
+    {
+     "name": "Mattea",
+     "pts": 279,
+     "pct": 66.3,
+     "pay": 25
+    },
+    {
+     "name": "Wes",
+     "pts": 279,
+     "pct": 63.7,
+     "pay": 25
+    },
+    {
+     "name": "Mahat",
+     "pts": 271,
+     "pct": 65.4,
+     "pay": null
+    },
+    {
+     "name": "Artime",
+     "pts": 257,
+     "pct": 61.2,
+     "pay": null
+    },
+    {
+     "name": "Jeremy",
+     "pts": 257,
+     "pct": 58.6,
+     "pay": null
+    },
+    {
+     "name": "Erik",
+     "pts": 252,
+     "pct": 58.9,
+     "pay": null
+    },
+    {
+     "name": "Rob",
+     "pts": 248,
+     "pct": 59.9,
+     "pay": null
+    },
+    {
+     "name": "Mac",
+     "pts": 231,
+     "pct": 54.4,
+     "pay": null
+    }
+   ]
+  },
+  {
+   "season": "2024-25",
+   "rows": [
+    {
+     "name": "Mahat",
+     "pts": 310,
+     "pct": 68.5,
+     "pay": 250
+    },
+    {
+     "name": "Steve Wehrell",
+     "pts": 307,
+     "pct": 71,
+     "pay": 150
+    },
+    {
+     "name": "Erik",
+     "pts": 295,
+     "pct": 67.1,
+     "pay": 50
+    },
+    {
+     "name": "Jeremy",
+     "pts": 279,
+     "pct": 62,
+     "pay": null
+    },
+    {
+     "name": "Rick",
+     "pts": 273,
+     "pct": 64.9,
+     "pay": null
+    },
+    {
+     "name": "Rob",
+     "pts": 266,
+     "pct": 62.1,
+     "pay": null
+    },
+    {
+     "name": "Steve Smith",
+     "pts": 263,
+     "pct": 62.1,
+     "pay": null
+    },
+    {
+     "name": "Mac",
+     "pts": 260,
+     "pct": 60.1,
+     "pay": null
+    },
+    {
+     "name": "Mattea",
+     "pts": 252,
+     "pct": 61.2,
+     "pay": null
+    }
+   ]
+  },
+  {
+   "season": "2023-24",
+   "rows": [
+    {
+     "name": "Steve Smith",
+     "pts": 309,
+     "pct": 69.4,
+     "pay": 250
+    },
+    {
+     "name": "Steve Wehrell",
+     "pts": 300,
+     "pct": 68.2,
+     "pay": 150
+    },
+    {
+     "name": "Cox",
+     "pts": 286,
+     "pct": 65.9,
+     "pay": 100
+    },
+    {
+     "name": "Mattea",
+     "pts": 285,
+     "pct": 63.8,
+     "pay": null
+    },
+    {
+     "name": "Rob",
+     "pts": 271,
+     "pct": 63.6,
+     "pay": null
+    },
+    {
+     "name": "Jeremy",
+     "pts": 263,
+     "pct": 62.8,
+     "pay": null
+    },
+    {
+     "name": "Rick",
+     "pts": 256,
+     "pct": 60.2,
+     "pay": null
+    },
+    {
+     "name": "Mahat",
+     "pts": 249,
+     "pct": 60.8,
+     "pay": null
+    },
+    {
+     "name": "Clay",
+     "pts": 236,
+     "pct": 55.4,
+     "pay": null
+    },
+    {
+     "name": "Mac",
+     "pts": 229,
+     "pct": 55.4,
+     "pay": null
+    }
+   ]
+  },
+  {
+   "season": "2022-23",
+   "rows": [
+    {
+     "name": "Jeremy",
+     "pts": 318,
+     "pct": 71.9,
+     "pay": 250
+    },
+    {
+     "name": "Steve Wehrell",
+     "pts": 316,
+     "pct": 69.2,
+     "pay": 150
+    },
+    {
+     "name": "Mahat",
+     "pts": 295,
+     "pct": 69.6,
+     "pay": 100
+    },
+    {
+     "name": "Clay Smith",
+     "pts": 292,
+     "pct": 65,
+     "pay": 50
+    },
+    {
+     "name": "Rick",
+     "pts": 267,
+     "pct": 63.7,
+     "pay": null
+    },
+    {
+     "name": "Rob",
+     "pts": 265,
+     "pct": 62.5,
+     "pay": null
+    },
+    {
+     "name": "Steve Smith",
+     "pts": 264,
+     "pct": 64,
+     "pay": null
+    },
+    {
+     "name": "Clay Shaw",
+     "pts": 245,
+     "pct": 57.5,
+     "pay": null
+    },
+    {
+     "name": "Mattea",
+     "pts": 240,
+     "pct": 56.1,
+     "pay": null
+    },
+    {
+     "name": "Mac",
+     "pts": 221,
+     "pct": 53.7,
+     "pay": null
+    },
+    {
+     "name": "Cox",
+     "pts": 219,
+     "pct": 54.5,
+     "pay": null
+    }
+   ]
+  },
+  {
+   "season": "2021-22",
+   "rows": [
+    {
+     "name": "Mattea",
+     "pts": 289,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Mahat",
+     "pts": 285,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Artime",
+     "pts": 282,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Rob",
+     "pts": 282,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Clay Smith",
+     "pts": 273,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Mac",
+     "pts": 267,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Cox",
+     "pts": 266,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Steve Smith",
+     "pts": 261,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Steve Wehrell",
+     "pts": 251,
+     "pct": null,
+     "pay": null
+    },
+    {
+     "name": "Clay Shaw",
+     "pts": 250,
+     "pct": null,
+     "pay": null
+    }
+   ]
+  }
+ ]
+}</script>
+<script>
+{
+const ORIG=JSON.parse(document.getElementById('league-data').textContent);
+let data=structuredClone(ORIG),editing=false,open=new Set(),q='';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
+const int=v=>Math.max(0,parseInt(v,10)||0);
+const pct=(w,l)=>w+l?(w/(w+l)).toFixed(3).replace(/^0/,''):'.000';
+const fmtDate=s=>{const tm=String(s).includes('T');const d=new Date(tm?s:s+'T12:00:00');if(isNaN(d))return s;const day=d.toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',year:'numeric'});return tm?day+', '+d.toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'})+' ET':day};
+function totals(m){let w=0,l=0,b=0;for(const t of m.teams){w+=int(t.w);l+=int(t.l);b+=int(t.b)}return{w,l,b,p:w+b}}
+function ranked(){
+  const list=data.managers.map((m,i)=>({m,i,...totals(m)}));
+  list.sort((a,b)=>b.p-a.p||a.l-b.l||a.m.name.localeCompare(b.m.name));
+  let r=0;list.forEach((x,k)=>{if(k===0||x.p!==list[k-1].p||x.l!==list[k-1].l)r=k+1;x.rank=r});
+  return list;
+}
+function render(){
+  $('title').textContent=data.league;document.title=data.league;
+  $('sub').textContent=`${data.managers.length} managers · ${data.season} season · most points (wins + bonus) takes it`;
+  $('updated').textContent='Last updated '+fmtDate(data.updated)+(data.source?' · source: '+data.source:'');
+  $('samplenote').textContent=data.sample?'Sample data shown: placeholder managers and made-up records until the real picks are loaded.':'';
+  const list=ranked(),top=list.length?list[0].p:0,ql=q.trim().toLowerCase();
+  const shown=ql?list.filter(x=>x.m.teams.some(t=>t.name.toLowerCase().includes(ql))||x.m.name.toLowerCase().includes(ql)):list;
+  if(!shown.length){$('rows').innerHTML=`<div class="empty">Nobody has a team matching “${esc(q)}”.</div>`;return}
+  $('rows').innerHTML=shown.map(x=>{
+    const isOpen=open.has(x.i)||(ql&&x.m.teams.some(t=>t.name.toLowerCase().includes(ql)));
+    const w=top?Math.round(x.p/top*100):0;
+    const teams=[...x.m.teams.map((t,j)=>({...t,j}))].sort((a,b)=>editing?0:(int(b.w)+int(b.b))-(int(a.w)+int(a.b))||int(a.l)-int(b.l));
+    const body=teams.map(t=>{
+      const hit=ql&&t.name.toLowerCase().includes(ql)?' class="hit"':'';
+      return editing
+      ?`<tr><td><input type="text" aria-label="Team name" value="${esc(t.name)}" data-m="${x.i}" data-t="${t.j}" data-f="name"></td>${['w','l','b'].map(f=>`<td class="n"><input type="number" min="0" inputmode="numeric" aria-label="${esc(t.name)} ${f==='w'?'wins':f==='l'?'losses':'bonus'}" value="${int(t[f])}" data-m="${x.i}" data-t="${t.j}" data-f="${f}"></td>`).join('')}</tr>`
+      :`<tr${hit}><td>${esc(t.name)}</td><td class="n">${int(t.w)}</td><td class="n">${int(t.l)}</td><td class="n">${int(t.b)||'–'}</td></tr>`}).join('');
+    const nameRow=editing?`<p style="margin:0 0 10px"><label class="note" style="color:var(--mute)">Manager name<input type="text" value="${esc(x.m.name)}" data-m="${x.i}" data-f="mname"></label></p>`:'';
+    return `<button class="row${x.rank===1?' r1':''}" type="button" aria-expanded="${isOpen}" data-i="${x.i}">
+<span class="rk">${x.rank}</span><span class="nm">${esc(x.m.name)}</span><span class="num">${x.p}</span><span class="num l sm">${x.w}</span><span class="num l sm">${x.l}</span><span class="num sm pc">${pct(x.w,x.l)}</span><span class="num sm gb">${top-x.p||'–'}</span><span class="chev" aria-hidden="true">›</span>
+<span class="bar" aria-hidden="true"><i style="width:${w}%"></i></span></button>`+
+    (isOpen?`<div class="roster">${nameRow}<table><thead><tr><th>Team</th><th class="n">W</th><th class="n">L</th><th class="n">Bonus</th></tr></thead><tbody>${body}<tr class="tot"><td>Total · ${x.p} pts</td><td class="n">${x.w}</td><td class="n">${x.l}</td><td class="n">${x.b}</td></tr></tbody></table></div>`:'');
+  }).join('');
+}
+function renderHist(){
+  const h=data.history||[];
+  $('history').innerHTML=h.map((s,k)=>`<details${k===0?' open':''}><summary><b>${esc(s.season)}</b><span>Champion: ${esc(s.rows[0]?.name||'')}${s.rows[0]?' · '+esc(s.rows[0].pts)+' pts':''}</span></summary>
+<table><thead><tr><th>#</th><th>Manager</th><th class="n">Pts</th><th class="n pc">Win %</th><th class="n">Payout</th></tr></thead><tbody>${s.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td class="n">${esc(r.pts)}</td><td class="n pc">${r.pct!=null?esc(r.pct)+'%':'–'}</td><td class="n">${r.pay?'$'+esc(r.pay):''}</td></tr>`).join('')}</tbody></table></details>`).join('');
+}
+$('rows').addEventListener('click',e=>{
+  const r=e.target.closest('.row');if(!r||r.classList.contains('head'))return;
+  const i=+r.dataset.i;open.has(i)?open.delete(i):open.add(i);render();
+  const again=document.querySelector(`.row[data-i="${i}"]`);if(again)again.focus();
+});
+
+$('q').addEventListener('input',e=>{q=e.target.value;render()});
+render();renderHist();
+}
+</script>
+</body>
+</html>
