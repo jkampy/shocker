@@ -14,7 +14,7 @@
    LAYOUT: modest title, standings board first, rosters expand inline, commissioner tools below */
 :root{color-scheme:light dark;
 --bg:light-dark(#f3f5f9,#0a1322);--ink:light-dark(#13294B,#eef2f8);--mute:light-dark(#4e5d75,#9fb0c8);
---floor:#FF5F05;--floor2:#f05503;
+--floor:#ffffff;--floor2:#fff0e6;
 --board:#0e1f3b;--board2:#162d52;--lit:#FF5F05;--orange:#FF5F05;--line:light-dark(#dde3ec,#22375a);--card:light-dark(#ffffff,#10203a)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
@@ -22,11 +22,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Barlow,system
 .band{padding:clamp(24px,4vw,56px) max(5vw,16px)}
 .wrap{max-width:1100px;margin:0 auto}
 header.band{background:repeating-linear-gradient(90deg,var(--floor) 0 46px,var(--floor2) 46px 48px);padding-bottom:clamp(116px,12vw,140px);position:relative}
-header.band{border-bottom:8px solid #13294B}header.band::after{content:"";position:absolute;left:50%;bottom:-1px;width:min(520px,80vw);height:60px;transform:translateX(-50%);border:3px solid rgba(255,255,255,.6);border-bottom:0;border-radius:260px 260px 0 0}
-h1{font:700 clamp(32px,6vw,52px)/1.05 Oswald,sans-serif;margin:0;color:#13294B;text-wrap:balance}
-.sub{margin:6px 0 0;color:#13294B;font-weight:600}
-:root[data-theme=dark] h1,:root[data-theme=dark] .sub{color:#13294B}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) h1,:root:not([data-theme=light]) .sub{color:#13294B}}
+header.band{border-bottom:8px solid #FF5F05}header.band::after{content:"";position:absolute;left:50%;bottom:-1px;width:min(520px,80vw);height:60px;transform:translateX(-50%);border:3px solid rgba(255,95,5,.55);border-bottom:0;border-radius:260px 260px 0 0}
+h1{font:700 clamp(32px,6vw,52px)/1.05 Oswald,sans-serif;margin:0;color:#FF5F05;text-wrap:balance}
+.sub{margin:6px 0 0;color:#d94f00;font-weight:700}
+:root[data-theme=dark] h1,:root[data-theme=dark] .sub{color:#FF5F05}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) h1,:root:not([data-theme=light]) .sub{color:#FF5F05}}
 main.band{padding-top:0}
 .board{background:var(--board);color:#e9e6df;border-radius:14px;margin-top:-84px;position:relative;box-shadow:0 18px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
 .board-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #22375a}
